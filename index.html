@@ -14,7 +14,7 @@
         h3 { font-size: 15px; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; }
         .form-group { margin-bottom: 10px; }
         label { display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 4px; }
-        input { width: 100%; padding: 9px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; }
+        input, select { width: 100%; padding: 9px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: #fff; }
         .row-inputs { display: flex; gap: 8px; }
         .row-inputs .form-group { flex: 1; }
         button.calc-btn { width: 100%; background: #2563eb; color: white; border: none; padding: 12px; border-radius: 8px; font-size: 14px; font-weight: bold; margin-top: 5px; cursor: pointer; }
@@ -29,7 +29,6 @@
         th, td { padding: 8px 6px; text-align: left; border-bottom: 1px solid #e2e8f0; }
         th { background: #f8fafc; color: #64748b; position: sticky; top: 0; z-index: 2; }
         .tahsisat-row { background-color: #dbeafe !important; font-weight: bold; color: #1e40af; }
-        .cekilis-row { background-color: #fef3c7; color: #92400e; font-size: 11px; }
         .table-input { width: 95px; padding: 4px; font-size: 12px; border: 1px solid #94a3b8; border-radius: 4px; }
         .info-note { font-size: 11px; color: #64748b; margin-bottom: 8px; font-style: italic; }
     </style>
@@ -49,7 +48,7 @@
         <div class="row-inputs">
             <div class="form-group">
                 <label>Hedef Tutar (TL)</label>
-                <input type="number" id="tutar" value="2000000">
+                <input type="number" id="tutar" value="4000000">
             </div>
             <div class="form-group">
                 <label>Org. Ücreti (%)</label>
@@ -68,7 +67,7 @@
         <div class="row-inputs">
             <div class="form-group">
                 <label>Peşinat (TL)</label>
-                <input type="number" id="pes1_tutar" value="400000">
+                <input type="number" id="pes1_tutar" value="800000">
             </div>
             <div class="form-group">
                 <label>Vade (Ay)</label>
@@ -98,18 +97,29 @@
         <button class="calc-btn" onclick="hesapla('kurali')">HESAPLA VE TABLO OLUŞTUR</button>
     </div>
 
-    <!-- MODEL 3: KURASIZ PEŞİNATSIZ (%45) -->
+    <!-- MODEL 3: KURASIZ VE PEŞİNAT SEÇENEKLİ -->
     <div id="kurasiz" class="model-panel card">
-        <h3>Kurasız Peşinatsız Model</h3>
+        <h3>Kurasız Model (%45 Peşinat Desteği)</h3>
         <div class="row-inputs">
             <div class="form-group">
-                <label>Başlangıç Taksit (TL)</label>
-                <input type="number" id="kurasiz_taksit" value="50000">
+                <label>Peşinat Oranı (%)</label>
+                <select id="kurasiz_pesinat_yuzde">
+                    <option value="0">%0 (Peşinatsız)</option>
+                    <option value="10" selected>%10 Peşinat</option>
+                    <option value="20">%20 Peşinat</option>
+                    <option value="30">%30 Peşinat</option>
+                    <option value="40">%40 Peşinat</option>
+                    <option value="45">%45 Peşinat (Doğrudan Teslim)</option>
+                </select>
             </div>
             <div class="form-group">
-                <label>Yıllık Artış Oranı (%)</label>
-                <input type="number" id="kurasiz_artis" value="15">
+                <label>Aylık Taksit (TL)</label>
+                <input type="number" id="kurasiz_taksit" value="100000">
             </div>
+        </div>
+        <div class="form-group">
+            <label>Yıllık Artış Oranı (%)</label>
+            <input type="number" id="kurasiz_artis" value="15">
         </div>
         <button class="calc-btn" onclick="hesapla('kurasiz')">HESAPLA VE TABLO OLUŞTUR</button>
     </div>
@@ -118,15 +128,16 @@
     <div class="card" id="sonucCard" style="display:none;">
         <h3>Proje Özet Bilgisi</h3>
         <div class="res-row"><span>Organizasyon Bedeli:</span><span class="res-val" id="resOrg">-</span></div>
-        <div class="res-row"><span>Toplam Borç (Finansman):</span><span class="res-val" id="resBorc">-</span></div>
+        <div class="res-row"><span>Ödenen Peşinat:</span><span class="res-val" id="resPesinat">-</span></div>
+        <div class="res-row"><span>Kalan Borç Finansmanı:</span><span class="res-val" id="resBorc">-</span></div>
         <div class="res-row"><span>Gerekli Toplam %45 Birikim:</span><span class="res-val" id="resHedefBirikim">-</span></div>
-        <div class="res-row"><span>Garanti Teslimat Ayı (En Geç):</span><span class="res-val highlight" id="resTeslim">-</span></div>
+        <div class="res-row"><span>Garanti Teslimat Ayı:</span><span class="res-val highlight" id="resTeslim">-</span></div>
     </div>
 
     <!-- ÖDEME TABLOSU -->
     <div class="card" id="tabloCard" style="display:none;">
         <h3>Detaylı Ödeme Planı</h3>
-        <p class="info-note">* Kurallar gereği teslimat en erken 6. ayda gerçekleşir. İlk taksitleri düşürdüğünüzde kalan borç sona doğru artarak tamamlanır.</p>
+        <p class="info-note">* Kurallar gereği teslimat en erken 6. ayda gerçekleşir. Peşinat ödemesi %45 birikim hedefine doğrudan eklenir.</p>
         <div class="table-container">
             <table>
                 <thead>
@@ -195,11 +206,14 @@
                 artarakTamamla(0, toplamBorc);
 
             } else if (model === 'kurasiz') {
+                const yuzdeSelect = parseFloat(document.getElementById('kurasiz_pesinat_yuzde').value) || 0;
+                pesinatMiktari = anaTutar * (yuzdeSelect / 100);
+                toplamBorc = anaTutar - pesinatMiktari;
+
                 const basTaksit = parseFloat(document.getElementById('kurasiz_taksit').value) || 0;
                 artisOrani = (parseFloat(document.getElementById('kurasiz_artis').value) || 0) / 100;
-                toplamBorc = anaTutar;
 
-                toplamVade = Math.ceil(anaTutar / basTaksit);
+                toplamVade = Math.ceil(toplamBorc / basTaksit);
                 let currT = basTaksit;
                 for (let i = 1; i <= toplamVade; i++) {
                     if (i > 1 && (i - 1) % 12 === 0) currT *= (1 + artisOrani);
@@ -210,6 +224,7 @@
             hesaplaTeslimatAyi();
 
             document.getElementById('resOrg').innerText = formatTL(orgUcreti);
+            document.getElementById('resPesinat').innerText = formatTL(pesinatMiktari);
             document.getElementById('resBorc').innerText = formatTL(toplamBorc);
             document.getElementById('resHedefBirikim').innerText = formatTL(hedefBirikim);
             document.getElementById('resTeslim').innerText = teslimAyi + ". Ay (Minimum 6. Ay Kuralı)";
@@ -248,7 +263,6 @@
             }
         }
 
-        // MINIMUM 6. AY VE %45 KURALINA GÖRE TESLİMAT HESABI
         function hesaplaTeslimatAyi() {
             let birikim = pesinatMiktari;
             let hesaplananAy = 0;
@@ -261,7 +275,6 @@
                 }
             }
 
-            // KURAL: Ne olursa olsun teslimat en erken 6. ayda gerçekleşir
             teslimAyi = Math.max(6, hesaplananAy);
         }
 
@@ -285,7 +298,6 @@
                 let durum = "Tasarruf Taksiti";
                 let extraInfo = "";
 
-                // ÇEKİLİŞLİ MODEL ÖZEL ŞARTLARI
                 if (aktifModel === 'kurali') {
                     if (item.ay === 1) {
                         extraInfo = " [1. ÇEKİLİŞ - Çıksa da Teslimat 6. Ay]";

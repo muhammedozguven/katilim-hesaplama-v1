@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Katılım Finans Proje Hesaplayıcı</title>
-    <!-- PDF Dönüştürme Kütüphanesi -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
         body { background-color: #f1f5f9; color: #0f172a; padding: 12px; }
@@ -35,11 +33,16 @@
         .table-input { width: 95px; padding: 4px; font-size: 12px; border: 1px solid #94a3b8; border-radius: 4px; }
         .info-note { font-size: 11px; color: #64748b; margin-bottom: 8px; font-style: italic; }
 
-        /* PDF Modu Kuralları */
-        .pdf-export-container { padding: 10px; background: #fff; font-family: sans-serif; }
-        .pdf-export-container table { width: 100%; border-collapse: collapse; font-size: 11px; }
-        .pdf-export-container tr { page-break-inside: avoid; }
-        .pdf-export-container th, .pdf-export-container td { padding: 6px 4px; border-bottom: 1px solid #cbd5e1; }
+        /* YAZDIRMA VE PDF OLUŞTURMA ÖZEL STİLLERİ */
+        @media print {
+            body { background: #fff; padding: 0; }
+            .tab-menu, .card:nth-child(2), .model-panel, .calc-btn, .pdf-btn, .info-note { display: none !important; }
+            .card { box-shadow: none; border: 1px solid #cbd5e1; margin-bottom: 10px; page-break-inside: avoid; }
+            .table-container { max-height: none !important; overflow: visible !important; }
+            table { font-size: 11px; }
+            tr { page-break-inside: avoid; }
+            .table-input { border: none; background: transparent; font-weight: bold; padding: 0; width: auto; }
+        }
     </style>
 </head>
 <body>
@@ -133,24 +136,23 @@
         <button class="calc-btn" onclick="hesapla('kurasiz')">HESAPLA VE TABLO OLUŞTUR</button>
     </div>
 
-    <!-- ÖZET ALANI -->
+    <!-- ÖZET -->
     <div class="card" id="sonucCard" style="display:none;">
-        <div id="ozetExportArea">
-            <h3>Proje Özet Bilgisi</h3>
-            <div class="res-row"><span>Organizasyon Bedeli:</span><span class="res-val" id="resOrg">-</span></div>
-            <div class="res-row"><span>Ödenen Peşinat:</span><span class="res-val" id="resPesinat">-</span></div>
-            <div class="res-row"><span>Kalan Borç Finansmanı:</span><span class="res-val" id="resBorc">-</span></div>
-            <div class="res-row"><span>Gerekli Toplam %45 Birikim:</span><span class="res-val" id="resHedefBirikim">-</span></div>
-            <div class="res-row"><span>Garanti Teslimat Ayı:</span><span class="res-val highlight" id="resTeslim">-</span></div>
-        </div>
-        <button class="pdf-btn" onclick="pdfIndir()">📄 PDF OLARAK İNDİR / PAYLAŞ</button>
+        <h3>Proje Özet Bilgisi</h3>
+        <div class="res-row"><span>Organizasyon Bedeli:</span><span class="res-val" id="resOrg">-</span></div>
+        <div class="res-row"><span>Ödenen Peşinat:</span><span class="res-val" id="resPesinat">-</span></div>
+        <div class="res-row"><span>Kalan Borç Finansmanı:</span><span class="res-val" id="resBorc">-</span></div>
+        <div class="res-row"><span>Gerekli Toplam %45 Birikim:</span><span class="res-val" id="resHedefBirikim">-</span></div>
+        <div class="res-row"><span>Garanti Teslimat Ayı:</span><span class="res-val highlight" id="resTeslim">-</span></div>
+        
+        <button class="pdf-btn" onclick="pdfIndir()">📄 PDF OLAARAK KAYDET / PAYLAŞ</button>
     </div>
 
     <!-- ÖDEME TABLOSU -->
     <div class="card" id="tabloCard" style="display:none;">
         <h3>Detaylı Ödeme Planı</h3>
         <p class="info-note">* Kurallar gereği teslimat en erken 6. ayda gerçekleşir. Peşinat ödemesi %45 birikim hedefine doğrudan eklenir.</p>
-        <div class="table-container" id="tableContainer">
+        <div class="table-container">
             <table>
                 <thead>
                     <tr>
@@ -383,39 +385,9 @@
             renderTable();
         }
 
-        // Kusursuz PDF İndirme Fonksiyonu
+        // Kesintisiz Yerleşik Yazdırma & PDF Fonksiyonu
         function pdfIndir() {
-            // PDF için temiz geçici konteyner oluştur
-            const pdfWrapper = document.createElement('div');
-            pdfWrapper.className = 'pdf-export-container';
-
-            // Özet alanını kopyala
-            const ozetClone = document.getElementById('ozetExportArea').cloneNode(true);
-            
-            // Tabloyu kopyala ve input'ları düz metne dönüştür
-            const tabloClone = document.getElementById('tabloCard').cloneNode(true);
-            const inputs = tabloClone.querySelectorAll('input.table-input');
-            inputs.forEach(input => {
-                const textSpan = document.createElement('span');
-                textSpan.innerText = input.value + " TL";
-                textSpan.style.fontWeight = "bold";
-                input.parentNode.replaceChild(textSpan, input);
-            });
-
-            pdfWrapper.appendChild(ozetClone);
-            pdfWrapper.appendChild(document.createElement('br'));
-            pdfWrapper.appendChild(tabloClone);
-
-            const opt = {
-                margin:       [10, 10, 10, 10],
-                filename:     'Katilim_Finans_Teklif_Raporu.pdf',
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, scrollY: 0 },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak:    { mode: ['css', 'legacy'] }
-            };
-
-            html2pdf().set(opt).from(pdfWrapper).save();
+            window.print();
         }
     </script>
 </body>

@@ -273,9 +273,9 @@
             }
         }
 
-        function artarakTamamla(kilitliAdet, kalanBorc) {
-            let kilitlenmeyenSayisi = toplamVade - kilitliAdet;
-            if (kilitlenmeyenSayisi <= 0) return;
+        function artarakDagit(kilitliSinirIndex, kalanBorc) {
+            let serbestAylarSayisi = toplamVade - (kilitliSinirIndex + 1);
+            if (serbestAylarSayisi <= 0) return;
             if (kalanBorc < 0) kalanBorc = 0;
 
             let agirliklar = [];
@@ -283,7 +283,7 @@
 
             let idx = 0;
             for (let i = 0; i < toplamVade; i++) {
-                if (i >= kilitliAdet) {
+                if (i > kilitliSinirIndex) {
                     let yilKat = Math.floor(idx / 12);
                     let agirlik = Math.pow(1 + artisOrani, yilKat);
                     agirliklar.push(agirlik);
@@ -296,8 +296,9 @@
 
             let wIdx = 0;
             for (let i = 0; i < toplamVade; i++) {
-                if (i >= kilitliAdet) {
+                if (i > kilitliSinirIndex) {
                     planData[i].tutar = tabanBirim * agirliklar[wIdx];
+                    planData[i].locked = false;
                     wIdx++;
                 }
             }
@@ -392,24 +393,17 @@
         function onTaksitChange(changedIndex, newVal) {
             let cleanVal = newVal.replace(/\./g, '').replace(',', '.');
             let val = parseFloat(cleanVal) || 0;
+            
             planData[changedIndex].tutar = val;
             planData[changedIndex].locked = true;
 
-            let odenenVeKilitli = 0;
-            let kilitliAdet = 0;
+            let kilitliToplam = 0;
+            for (let i = 0; i <= changedIndex; i++) {
+                kilitliToplam += planData[i].tutar;
+            }
 
-            planData.forEach((item, idx) => {
-                if (idx <= changedIndex) {
-                    item.locked = true;
-                }
-                if (item.locked) {
-                    odenenVeKilitli += item.tutar;
-                    kilitliAdet++;
-                }
-            });
-
-            let kalanBorc = toplamBorc - odenenVeKilitli;
-            artarakTamamla(kilitliAdet, kalanBorc);
+            let kalanBorc = toplamBorc - kilitliToplam;
+            artarakDagit(changedIndex, kalanBorc);
 
             const orgOran = parseFloat(document.getElementById('orgOran').value) || 0;
             const orgUcreti = anaTutar * (orgOran / 100);
@@ -422,4 +416,3 @@
     </script>
 </body>
 </html>
-

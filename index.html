@@ -33,13 +33,14 @@
         .table-input { width: 95px; padding: 4px; font-size: 12px; border: 1px solid #94a3b8; border-radius: 4px; }
         .info-note { font-size: 11px; color: #64748b; margin-bottom: 8px; font-style: italic; }
 
-        /* YAZDIRMA VE PDF OLUŞTURMA ÖZEL STİLLERİ */
+        /* YAZDIRMA VE PDF OLUŞTURMA ÖZEL STİLLERİ (BOŞLUKLARI YOK EDEN KISIM) */
         @media print {
-            body { background: #fff; padding: 0; }
-            .tab-menu, .card:nth-child(2), .model-panel, .calc-btn, .pdf-btn, .info-note { display: none !important; }
-            .card { box-shadow: none; border: 1px solid #cbd5e1; margin-bottom: 10px; page-break-inside: avoid; }
+            body { background: #fff; padding: 0; font-size: 12px; }
+            .tab-menu, .card:not(#sonucCard):not(#tabloCard), .calc-btn, .pdf-btn, .info-note { display: none !important; }
+            .card { box-shadow: none; border: none; padding: 0; margin: 0; }
+            #sonucCard, #tabloCard { display: block !important; margin-bottom: 20px; page-break-inside: avoid; }
             .table-container { max-height: none !important; overflow: visible !important; }
-            table { font-size: 11px; }
+            table { font-size: 11px; width: 100%; }
             tr { page-break-inside: avoid; }
             .table-input { border: none; background: transparent; font-weight: bold; padding: 0; width: auto; }
         }
@@ -139,6 +140,8 @@
     <!-- ÖZET -->
     <div class="card" id="sonucCard" style="display:none;">
         <h3>Proje Özet Bilgisi</h3>
+        <div class="res-row"><span>Hedef Tutar (Finansman):</span><span class="res-val" id="resHedefTutar">-</span></div>
+        <div class="res-row"><span>İlk Taksit Başlangıç Tarihi:</span><span class="res-val" id="resBasTarih">-</span></div>
         <div class="res-row"><span>Organizasyon Bedeli:</span><span class="res-val" id="resOrg">-</span></div>
         <div class="res-row"><span>Ödenen Peşinat:</span><span class="res-val" id="resPesinat">-</span></div>
         <div class="res-row"><span>Kalan Borç Finansmanı:</span><span class="res-val" id="resBorc">-</span></div>
@@ -251,11 +254,17 @@
 
             hesaplaTeslimatAyi();
 
-            document.getElementById('resOrg').innerText = formatTL(orgUcreti);
+            // Özet alanına yeni eklenen bilgileri doldur
+            document.getElementById('resHedefTutar').innerText = formatTL(anaTutar);
+            const tarihVal = document.getElementById('baslangicTarih').value;
+            document.getElementById('resBasTarih').innerText = tarihVal ? new Date(tarihVal).toLocaleDateString('tr-TR') : '-';
+            
+            document.getElementById('resOrg').innerText = formatTL(orgUcreti) + ` (%${orgOran})`;
             document.getElementById('resPesinat').innerText = formatTL(pesinatMiktari);
             document.getElementById('resBorc').innerText = formatTL(toplamBorc);
             document.getElementById('resHedefBirikim').innerText = formatTL(hedefBirikim);
             document.getElementById('resTeslim').innerText = teslimAyi + ". Ay (Minimum 6. Ay Kuralı)";
+            
             document.getElementById('sonucCard').style.display = 'block';
             document.getElementById('tabloCard').style.display = 'block';
 
@@ -385,7 +394,6 @@
             renderTable();
         }
 
-        // Kesintisiz Yerleşik Yazdırma & PDF Fonksiyonu
         function pdfIndir() {
             window.print();
         }

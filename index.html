@@ -33,7 +33,7 @@
         .table-input { width: 95px; padding: 4px; font-size: 12px; border: 1px solid #94a3b8; border-radius: 4px; }
         .info-note { font-size: 11px; color: #64748b; margin-bottom: 8px; font-style: italic; }
 
-        /* YAZDIRMA VE PDF OLUŞTURMA ÖZEL STİLLERİ (BOŞLUKLARI YOK EDEN KISIM) */
+        /* YAZDIRMA VE PDF OLUŞTURMA ÖZEL STİLLERİ */
         @media print {
             body { background: #fff; padding: 0; font-size: 12px; }
             .tab-menu, .card:not(#sonucCard):not(#tabloCard), .calc-btn, .pdf-btn, .info-note { display: none !important; }
@@ -148,7 +148,7 @@
         <div class="res-row"><span>Gerekli Toplam %45 Birikim:</span><span class="res-val" id="resHedefBirikim">-</span></div>
         <div class="res-row"><span>Garanti Teslimat Ayı:</span><span class="res-val highlight" id="resTeslim">-</span></div>
         
-        <button class="pdf-btn" onclick="pdfIndir()">📄 KAYDET / PAYLAŞ</button>
+        <button class="pdf-btn" onclick="pdfIndir()">📄 PDF OLARAK KAYDET / PAYLAŞ</button>
     </div>
 
     <!-- ÖDEME TABLOSU -->
@@ -227,14 +227,14 @@
                 artisOrani = (parseFloat(document.getElementById('pes1_artis').value) || 0) / 100;
                 toplamBorc = anaTutar - pesinatMiktari;
 
-                artarakTamamla(0, toplamBorc);
+                ilkPlaniOlustur();
 
             } else if (model === 'kurali') {
                 toplamVade = parseInt(document.getElementById('kur_grup').value) || 30;
                 artisOrani = (parseFloat(document.getElementById('kur_artis').value) || 0) / 100;
                 toplamBorc = anaTutar;
 
-                artarakTamamla(0, toplamBorc);
+                ilkPlaniOlustur();
 
             } else if (model === 'kurasiz') {
                 const yuzdeSelect = parseFloat(document.getElementById('kurasiz_pesinat_yuzde').value) || 0;
@@ -252,51 +252,54 @@
                 }
             }
 
-            hesaplaTeslimatAyi();
-
-            // Özet alanına yeni eklenen bilgileri doldur
-            document.getElementById('resHedefTutar').innerText = formatTL(anaTutar);
-            const tarihVal = document.getElementById('baslangicTarih').value;
-            document.getElementById('resBasTarih').innerText = tarihVal ? new Date(tarihVal).toLocaleDateString('tr-TR') : '-';
-            
-            document.getElementById('resOrg').innerText = formatTL(orgUcreti) + ` (%${orgOran})`;
-            document.getElementById('resPesinat').innerText = formatTL(pesinatMiktari);
-            document.getElementById('resBorc').innerText = formatTL(toplamBorc);
-            document.getElementById('resHedefBirikim').innerText = formatTL(hedefBirikim);
-            document.getElementById('resTeslim').innerText = teslimAyi + ". Ay (Minimum 6. Ay Kuralı)";
-            
-            document.getElementById('sonucCard').style.display = 'block';
-            document.getElementById('tabloCard').style.display = 'block';
-
-            renderTable();
+            guncelleUI(orgOran, orgUcreti);
         }
 
-        function artarakTamamla(kilitliAdet, kalanBorc) {
-            let kilitlenmeyenSayisi = toplamVade - kilitliAdet;
-            if (kilitlenmeyenSayisi <= 0 || kalanBorc <= 0) return;
-
+        function ilkPlaniOlustur() {
             let agirliklar = [];
             let toplamAgirlik = 0;
 
-            for (let i = 0; i < kilitlenmeyenSayisi; i++) {
+            for (let i = 0; i < toplamVade; i++) {
                 let yilKat = Math.floor(i / 12);
                 let agirlik = Math.pow(1 + artisOrani, yilKat);
                 agirliklar.push(agirlik);
                 toplamAgirlik += agirlik;
             }
 
-            let tabanBirim = kalanBorc / toplamAgirlik;
+            let tabanBirim = toplamBorc / toplamAgirlik;
+
+            for (let i = 0; i < toplamVade; i++) {
+                planData.push({ ay: i + 1, tutar: tabanBirim * agirliklar[i], locked: false });
+            }
+        }
+
+        function artarakTamamla(kilitliAdet, kalanBorc) {
+            let kilitlenmeyenSayisi = toplamVade - kilitliAdet;
+            if (kilitlenmeyenSayisi <= 0) return;
+            if (kalanBorc < 0) kalanBorc = 0;
+
+            let agirliklar = [];
+            let toplamAgirlik = 0;
 
             let idx = 0;
             for (let i = 0; i < toplamVade; i++) {
-                if (i < kilitliAdet) continue;
-                let hesaplananTaksit = tabanBirim * agirliklar[idx];
-                if (planData[i]) {
-                    planData[i].tutar = hesaplananTaksit;
-                } else {
-                    planData.push({ ay: i + 1, tutar: hesaplananTaksit, locked: false });
+                if (i >= kilitliAdet) {
+                    let yilKat = Math.floor(idx / 12);
+                    let agirlik = Math.pow(1 + artisOrani, yilKat);
+                    agirliklar.push(agirlik);
+                    toplamAgirlik += agirlik;
+                    idx++;
                 }
-                idx++;
+            }
+
+            let tabanBirim = toplamAgirlik > 0 ? (kalanBorc / toplamAgirlik) : 0;
+
+            let wIdx = 0;
+            for (let i = 0; i < toplamVade; i++) {
+                if (i >= kilitliAdet) {
+                    planData[i].tutar = tabanBirim * agirliklar[wIdx];
+                    wIdx++;
+                }
             }
         }
 
@@ -312,7 +315,26 @@
                 }
             }
 
-            teslimAyi = Math.max(6, hesaplananAy);
+            teslimAyi = Math.max(6, hesaplananAy > 0 ? hesaplananAy : 6);
+        }
+
+        function guncelleUI(orgOran, orgUcreti) {
+            hesaplaTeslimatAyi();
+
+            document.getElementById('resHedefTutar').innerText = formatTL(anaTutar);
+            const tarihVal = document.getElementById('baslangicTarih').value;
+            document.getElementById('resBasTarih').innerText = tarihVal ? new Date(tarihVal).toLocaleDateString('tr-TR') : '-';
+            
+            document.getElementById('resOrg').innerText = formatTL(orgUcreti) + ` (%${orgOran})`;
+            document.getElementById('resPesinat').innerText = formatTL(pesinatMiktari);
+            document.getElementById('resBorc').innerText = formatTL(toplamBorc);
+            document.getElementById('resHedefBirikim').innerText = formatTL(hedefBirikim);
+            document.getElementById('resTeslim').innerText = teslimAyi + ". Ay (Minimum 6. Ay Kuralı)";
+            
+            document.getElementById('sonucCard').style.display = 'block';
+            document.getElementById('tabloCard').style.display = 'block';
+
+            renderTable();
         }
 
         function renderTable() {
@@ -371,15 +393,15 @@
             let cleanVal = newVal.replace(/\./g, '').replace(',', '.');
             let val = parseFloat(cleanVal) || 0;
             planData[changedIndex].tutar = val;
-
-            for (let i = 0; i <= changedIndex; i++) {
-                planData[i].locked = true;
-            }
+            planData[changedIndex].locked = true;
 
             let odenenVeKilitli = 0;
             let kilitliAdet = 0;
 
-            planData.forEach(item => {
+            planData.forEach((item, idx) => {
+                if (idx <= changedIndex) {
+                    item.locked = true;
+                }
                 if (item.locked) {
                     odenenVeKilitli += item.tutar;
                     kilitliAdet++;
@@ -389,9 +411,9 @@
             let kalanBorc = toplamBorc - odenenVeKilitli;
             artarakTamamla(kilitliAdet, kalanBorc);
 
-            hesaplaTeslimatAyi();
-            document.getElementById('resTeslim').innerText = teslimAyi + ". Ay (Minimum 6. Ay Kuralı)";
-            renderTable();
+            const orgOran = parseFloat(document.getElementById('orgOran').value) || 0;
+            const orgUcreti = anaTutar * (orgOran / 100);
+            guncelleUI(orgOran, orgUcreti);
         }
 
         function pdfIndir() {
@@ -400,3 +422,4 @@
     </script>
 </body>
 </html>
+

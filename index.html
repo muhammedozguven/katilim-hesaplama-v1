@@ -35,11 +35,9 @@
         .table-input { width: 95px; padding: 4px; font-size: 12px; border: 1px solid #94a3b8; border-radius: 4px; }
         .info-note { font-size: 11px; color: #64748b; margin-bottom: 8px; font-style: italic; }
 
-        /* PDF Yazdırma Özel Stilleri */
-        @media print {
-            .tab-menu, .calc-btn, .pdf-btn { display: none !important; }
-            .table-container { max-height: none !important; overflow: visible !important; }
-        }
+        /* PDF Oluşturulurken Otomatik Uygulanacak Stil */
+        .pdf-mode .table-container { max-height: none !important; overflow: visible !important; }
+        .pdf-mode .calc-btn, .pdf-mode .pdf-btn, .pdf-mode .tab-menu { display: none !important; }
     </style>
 </head>
 <body>
@@ -143,14 +141,14 @@
             <div class="res-row"><span>Gerekli Toplam %45 Birikim:</span><span class="res-val" id="resHedefBirikim">-</span></div>
             <div class="res-row"><span>Garanti Teslimat Ayı:</span><span class="res-val highlight" id="resTeslim">-</span></div>
             
-            <button class="pdf-btn" onclick="pdfIndir()">📄 PDF OLAARAK İNDİR / PAYLAŞ</button>
+            <button class="pdf-btn" onclick="pdfIndir()">📄 PDF OLARAK İNDİR / PAYLAŞ</button>
         </div>
 
         <!-- ÖDEME TABLOSU -->
         <div class="card" id="tabloCard" style="display:none;">
             <h3>Detaylı Ödeme Planı</h3>
             <p class="info-note">* Kurallar gereği teslimat en erken 6. ayda gerçekleşir. Peşinat ödemesi %45 birikim hedefine doğrudan eklenir.</p>
-            <div class="table-container">
+            <div class="table-container" id="tableContainer">
                 <table>
                     <thead>
                         <tr>
@@ -180,7 +178,6 @@
         let artisOrani = 0.15;
         let planData = [];
 
-        // Canlı Noktalama Fonksiyonu (1000000 -> 1.000.000)
         function formatInputTL(input) {
             let cleanVal = input.value.replace(/\D/g, '');
             if (!cleanVal) {
@@ -385,18 +382,24 @@
             renderTable();
         }
 
-        // PDF İndirme Fonksiyonu
+        // Tam Sayfa PDF İndirme Fonksiyonu
         function pdfIndir() {
+            const body = document.body;
+            body.classList.add('pdf-mode');
+
             const element = document.getElementById('pdfArea');
             const opt = {
-                margin:       [10, 10, 10, 10],
+                margin:       [8, 8, 8, 8],
                 filename:     'Katilim_Finans_Teklif_Raporu.pdf',
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2 },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
             };
             
-            html2pdf().set(opt).from(element).save();
+            html2pdf().set(opt).from(element).save().then(() => {
+                body.classList.remove('pdf-mode');
+            });
         }
     </script>
 </body>

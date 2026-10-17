@@ -35,9 +35,11 @@
         .table-input { width: 95px; padding: 4px; font-size: 12px; border: 1px solid #94a3b8; border-radius: 4px; }
         .info-note { font-size: 11px; color: #64748b; margin-bottom: 8px; font-style: italic; }
 
-        /* PDF Oluşturulurken Otomatik Uygulanacak Stil */
-        .pdf-mode .table-container { max-height: none !important; overflow: visible !important; }
-        .pdf-mode .calc-btn, .pdf-mode .pdf-btn, .pdf-mode .tab-menu { display: none !important; }
+        /* PDF Modu Kuralları */
+        .pdf-export-container { padding: 10px; background: #fff; font-family: sans-serif; }
+        .pdf-export-container table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        .pdf-export-container tr { page-break-inside: avoid; }
+        .pdf-export-container th, .pdf-export-container td { padding: 6px 4px; border-bottom: 1px solid #cbd5e1; }
     </style>
 </head>
 <body>
@@ -49,119 +51,118 @@
         <button class="tab-btn" onclick="switchTab('kurasiz', event)">3. Kurasız (%45)</button>
     </div>
 
-    <div id="pdfArea">
-        <!-- ORTAK BİLGİLER -->
-        <div class="card">
-            <h3>Finansman & Başlangıç Bilgileri</h3>
-            <div class="row-inputs">
-                <div class="form-group">
-                    <label>Hedef Tutar (TL)</label>
-                    <input type="text" id="tutar" value="4.000.000" oninput="formatInputTL(this)">
-                </div>
-                <div class="form-group">
-                    <label>Org. Ücreti (%)</label>
-                    <input type="number" id="orgOran" value="8.5" step="0.1">
-                </div>
+    <!-- ORTAK BİLGİLER -->
+    <div class="card">
+        <h3>Finansman & Başlangıç Bilgileri</h3>
+        <div class="row-inputs">
+            <div class="form-group">
+                <label>Hedef Tutar (TL)</label>
+                <input type="text" id="tutar" value="4.000.000" oninput="formatInputTL(this)">
             </div>
             <div class="form-group">
-                <label>İlk Taksit Tarihi</label>
-                <input type="date" id="baslangicTarih">
+                <label>Org. Ücreti (%)</label>
+                <input type="number" id="orgOran" value="8.5" step="0.1">
             </div>
         </div>
+        <div class="form-group">
+            <label>İlk Taksit Tarihi</label>
+            <input type="date" id="baslangicTarih">
+        </div>
+    </div>
 
-        <!-- MODEL 1: PEŞİNATLI -->
-        <div id="pesinatli" class="model-panel active card">
-            <h3>Peşinatlı Model</h3>
-            <div class="row-inputs">
-                <div class="form-group">
-                    <label>Peşinat (TL)</label>
-                    <input type="text" id="pes1_tutar" value="800.000" oninput="formatInputTL(this)">
-                </div>
-                <div class="form-group">
-                    <label>Vade (Ay)</label>
-                    <input type="number" id="pes1_vade" value="24">
-                </div>
+    <!-- MODEL 1: PEŞİNATLI -->
+    <div id="pesinatli" class="model-panel active card">
+        <h3>Peşinatlı Model</h3>
+        <div class="row-inputs">
+            <div class="form-group">
+                <label>Peşinat (TL)</label>
+                <input type="text" id="pes1_tutar" value="800.000" oninput="formatInputTL(this)">
+            </div>
+            <div class="form-group">
+                <label>Vade (Ay)</label>
+                <input type="number" id="pes1_vade" value="24">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Yıllık Taksit Artış Oranı (%)</label>
+            <input type="number" id="pes1_artis" value="15">
+        </div>
+        <button class="calc-btn" onclick="hesapla('pesinatli')">HESAPLA VE TABLO OLUŞTUR</button>
+    </div>
+
+    <!-- MODEL 2: KURALI -->
+    <div id="kurali" class="model-panel card">
+        <h3>Kuralı / Çekilişli Model</h3>
+        <div class="row-inputs">
+            <div class="form-group">
+                <label>Grup Kişi Sayısı</label>
+                <input type="number" id="kur_grup" value="30">
             </div>
             <div class="form-group">
                 <label>Yıllık Taksit Artış Oranı (%)</label>
-                <input type="number" id="pes1_artis" value="15">
+                <input type="number" id="kur_artis" value="15">
             </div>
-            <button class="calc-btn" onclick="hesapla('pesinatli')">HESAPLA VE TABLO OLUŞTUR</button>
         </div>
+        <button class="calc-btn" onclick="hesapla('kurali')">HESAPLA VE TABLO OLUŞTUR</button>
+    </div>
 
-        <!-- MODEL 2: KURALI -->
-        <div id="kurali" class="model-panel card">
-            <h3>Kuralı / Çekilişli Model</h3>
-            <div class="row-inputs">
-                <div class="form-group">
-                    <label>Grup Kişi Sayısı</label>
-                    <input type="number" id="kur_grup" value="30">
-                </div>
-                <div class="form-group">
-                    <label>Yıllık Taksit Artış Oranı (%)</label>
-                    <input type="number" id="kur_artis" value="15">
-                </div>
-            </div>
-            <button class="calc-btn" onclick="hesapla('kurali')">HESAPLA VE TABLO OLUŞTUR</button>
-        </div>
-
-        <!-- MODEL 3: KURASIZ VE PEŞİNAT SEÇENEKLİ -->
-        <div id="kurasiz" class="model-panel card">
-            <h3>Kurasız Model (%45 Peşinat Desteği)</h3>
-            <div class="row-inputs">
-                <div class="form-group">
-                    <label>Peşinat Oranı (%)</label>
-                    <select id="kurasiz_pesinat_yuzde">
-                        <option value="0">%0 (Peşinatsız)</option>
-                        <option value="10" selected>%10 Peşinat</option>
-                        <option value="20">%20 Peşinat</option>
-                        <option value="30">%30 Peşinat</option>
-                        <option value="40">%40 Peşinat</option>
-                        <option value="45">%45 Peşinat (Doğrudan Teslim)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Aylık Taksit (TL)</label>
-                    <input type="text" id="kurasiz_taksit" value="100.000" oninput="formatInputTL(this)">
-                </div>
+    <!-- MODEL 3: KURASIZ VE PEŞİNAT SEÇENEKLİ -->
+    <div id="kurasiz" class="model-panel card">
+        <h3>Kurasız Model (%45 Peşinat Desteği)</h3>
+        <div class="row-inputs">
+            <div class="form-group">
+                <label>Peşinat Oranı (%)</label>
+                <select id="kurasiz_pesinat_yuzde">
+                    <option value="0">%0 (Peşinatsız)</option>
+                    <option value="10" selected>%10 Peşinat</option>
+                    <option value="20">%20 Peşinat</option>
+                    <option value="30">%30 Peşinat</option>
+                    <option value="40">%40 Peşinat</option>
+                    <option value="45">%45 Peşinat (Doğrudan Teslim)</option>
+                </select>
             </div>
             <div class="form-group">
-                <label>Yıllık Artış Oranı (%)</label>
-                <input type="number" id="kurasiz_artis" value="15">
+                <label>Aylık Taksit (TL)</label>
+                <input type="text" id="kurasiz_taksit" value="100.000" oninput="formatInputTL(this)">
             </div>
-            <button class="calc-btn" onclick="hesapla('kurasiz')">HESAPLA VE TABLO OLUŞTUR</button>
         </div>
+        <div class="form-group">
+            <label>Yıllık Artış Oranı (%)</label>
+            <input type="number" id="kurasiz_artis" value="15">
+        </div>
+        <button class="calc-btn" onclick="hesapla('kurasiz')">HESAPLA VE TABLO OLUŞTUR</button>
+    </div>
 
-        <!-- ÖZET -->
-        <div class="card" id="sonucCard" style="display:none;">
+    <!-- ÖZET ALANI -->
+    <div class="card" id="sonucCard" style="display:none;">
+        <div id="ozetExportArea">
             <h3>Proje Özet Bilgisi</h3>
             <div class="res-row"><span>Organizasyon Bedeli:</span><span class="res-val" id="resOrg">-</span></div>
             <div class="res-row"><span>Ödenen Peşinat:</span><span class="res-val" id="resPesinat">-</span></div>
             <div class="res-row"><span>Kalan Borç Finansmanı:</span><span class="res-val" id="resBorc">-</span></div>
             <div class="res-row"><span>Gerekli Toplam %45 Birikim:</span><span class="res-val" id="resHedefBirikim">-</span></div>
             <div class="res-row"><span>Garanti Teslimat Ayı:</span><span class="res-val highlight" id="resTeslim">-</span></div>
-            
-            <button class="pdf-btn" onclick="pdfIndir()">📄 PDF OLARAK İNDİR / PAYLAŞ</button>
         </div>
+        <button class="pdf-btn" onclick="pdfIndir()">📄 PDF OLARAK İNDİR / PAYLAŞ</button>
+    </div>
 
-        <!-- ÖDEME TABLOSU -->
-        <div class="card" id="tabloCard" style="display:none;">
-            <h3>Detaylı Ödeme Planı</h3>
-            <p class="info-note">* Kurallar gereği teslimat en erken 6. ayda gerçekleşir. Peşinat ödemesi %45 birikim hedefine doğrudan eklenir.</p>
-            <div class="table-container" id="tableContainer">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Ay</th>
-                            <th>Tarih</th>
-                            <th>Aşama / Çekiliş Durumu</th>
-                            <th>Taksit Tutarı (TL)</th>
-                            <th>Toplam Birikim</th>
-                        </tr>
-                    </thead>
-                    <tbody id="taksitBody"></tbody>
-                </table>
-            </div>
+    <!-- ÖDEME TABLOSU -->
+    <div class="card" id="tabloCard" style="display:none;">
+        <h3>Detaylı Ödeme Planı</h3>
+        <p class="info-note">* Kurallar gereği teslimat en erken 6. ayda gerçekleşir. Peşinat ödemesi %45 birikim hedefine doğrudan eklenir.</p>
+        <div class="table-container" id="tableContainer">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ay</th>
+                        <th>Tarih</th>
+                        <th>Aşama / Çekiliş Durumu</th>
+                        <th>Taksit Tutarı (TL)</th>
+                        <th>Toplam Birikim</th>
+                    </tr>
+                </thead>
+                <tbody id="taksitBody"></tbody>
+            </table>
         </div>
     </div>
 
@@ -382,24 +383,39 @@
             renderTable();
         }
 
-        // Tam Sayfa PDF İndirme Fonksiyonu
+        // Kusursuz PDF İndirme Fonksiyonu
         function pdfIndir() {
-            const body = document.body;
-            body.classList.add('pdf-mode');
+            // PDF için temiz geçici konteyner oluştur
+            const pdfWrapper = document.createElement('div');
+            pdfWrapper.className = 'pdf-export-container';
 
-            const element = document.getElementById('pdfArea');
+            // Özet alanını kopyala
+            const ozetClone = document.getElementById('ozetExportArea').cloneNode(true);
+            
+            // Tabloyu kopyala ve input'ları düz metne dönüştür
+            const tabloClone = document.getElementById('tabloCard').cloneNode(true);
+            const inputs = tabloClone.querySelectorAll('input.table-input');
+            inputs.forEach(input => {
+                const textSpan = document.createElement('span');
+                textSpan.innerText = input.value + " TL";
+                textSpan.style.fontWeight = "bold";
+                input.parentNode.replaceChild(textSpan, input);
+            });
+
+            pdfWrapper.appendChild(ozetClone);
+            pdfWrapper.appendChild(document.createElement('br'));
+            pdfWrapper.appendChild(tabloClone);
+
             const opt = {
-                margin:       [8, 8, 8, 8],
+                margin:       [10, 10, 10, 10],
                 filename:     'Katilim_Finans_Teklif_Raporu.pdf',
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
+                html2canvas:  { scale: 2, scrollY: 0 },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+                pagebreak:    { mode: ['css', 'legacy'] }
             };
-            
-            html2pdf().set(opt).from(element).save().then(() => {
-                body.classList.remove('pdf-mode');
-            });
+
+            html2pdf().set(opt).from(pdfWrapper).save();
         }
     </script>
 </body>
